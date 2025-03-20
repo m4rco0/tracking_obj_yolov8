@@ -7,7 +7,7 @@ source venv/bin/activate
 ```
 Logo após baixe as dependências para rodar o detector de objetos YOLOv8 e o opencv, para mostrar a imagem em tempo real.
 ```bash
-python3 install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 Agora você pode executar o codigo, se quiser utilizar a camera modifique essa parte do codigo:
