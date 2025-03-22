@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 7
+names: ['cama', 'marcola', 'oculos de marco', 'roupas', 'tatuagem de marco', 'travesseiro', 'ventilador']
+
+roboflow:
+  workspace: esp32cam-5jd0a
+  project: detect-and-classify-object-detection-mx7jp
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/esp32cam-5jd0a/detect-and-classify-object-detection-mx7jp/dataset/2

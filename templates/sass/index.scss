@@ -1,0 +1,142 @@
+$font-stack: Helvetica, sans-serif;
+
+// ====Theme colors=====
+$primary-color: #09f801;
+$secundary-color: #803e3e;
+$btn-color: #333;
+$background: #272626;
+$background-black: #161616;
+$background-image: "/assets/img/bg.jpg";
+// ====spacing=====
+$base-padding: 0.75rem;
+$base-margin: 0.75rem;
+
+// ====borders=====
+* {
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    color: $primary-color;
+    text-decoration: none;
+    transition: transform 0.3;
+
+    &:hover {
+        opacity: 0.5;
+        color: $primary-color;
+    }
+}
+
+
+
+nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background-color: $background-black;
+    height: 10vh;
+    
+    .nav-list {
+        display: flex;
+        list-style: none;
+        transition: transform 0.3s ease-in;
+
+        li {
+            letter-spacing: 3px;
+            margin-left: 30px;
+        }
+        .logo {
+            font-size: 25px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+    }
+    
+}
+
+.mobile-menu {
+    cursor: pointer;
+    transition: transform 0.5s;
+    display: none;
+    div {
+        width: 32px;
+        height: 2px;
+        background-color: #fff;
+        margin: 8px;
+    }
+
+    &:hover {
+        transform: scale(1.2);
+    }
+
+}
+
+@media (max-width: 900px) {
+    body {
+        overflow-x: hidden;
+    }
+    .nav-list {
+        position: absolute;
+        top: 8vh;
+        right: 0;
+        background-color: $background-black;
+        width: 50vw;
+        height: 92vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-around;
+        transform: translateX(100%);
+
+        li {
+            margin-left: 0;
+            opacity: 0;
+        }
+
+        .logo {
+            font-size: 10px;
+            letter-spacing: 2px;
+        }
+
+
+
+    }
+    .mobile-menu {
+        display: block;
+        width: 10px;
+    }
+
+    .nav-list.active {
+        transform: translateX(0);
+    }
+}
+
+@keyframes navLinkFade {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform:  translateX(0);
+    }
+}
+main {
+    height: 90vh;
+    background-image: url("/assets/img/bg.jpg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+.cam {
+    width: 60%;
+    background-color: white;
+    height: 60%;
+    min-height: 60%;
+}
