@@ -15,7 +15,7 @@ python -m venv .env
 
 ```bash
 source ./.env/bin/activate  #linux
-.\.env\bin\activate         #windows
+env\Scripts\activate         #windows
 ```
 
 3. execute main code
