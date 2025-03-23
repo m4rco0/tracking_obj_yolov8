@@ -1,6 +1,7 @@
 from ultralytics import YOLO
 import cv2 as cv 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
+from werkzeug.wrappers import response
 stream_cam = 0
 # Carregar o modelo YOLO
 # pegando a camera que vai representar o frame
@@ -28,5 +29,9 @@ def tracking_obj():
 def index():
     return render_template('index.html')
 
+@app.route('/iniciar_cam')
+def iniciar_cam():
+    return response.Response(tracking_obj(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
