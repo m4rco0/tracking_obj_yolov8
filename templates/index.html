@@ -31,11 +31,23 @@
     <main>
 
       <div class="cam">
-        <img src="{{ url_for('iniciar_cam')}}"
+        <img id="video-stream" src="" alt="Fluxo de video ao vivo">
+      </div>
+
+      <div class="actions">
+        <button id="ligar-cam" onclick="startTracking()">ligar cam</button>
+        <button id="desligar-cam" onclick="stopTracking()">desligar cam</button>
+        <button id="capturar-frame" onclick="capturePhoto()">capturar frame</button>
+        <button id="iniciar-gravacao" onclick="startRecording()"> gravacao</button>
+        <button id="desligar-gravacao" onclick="stopRecording()">desligar gravacao</button>
+      </div>
+      <div class="lab">
+        <a id="Infos-cam">Informações</a>
       </div>
 
     </main>
 </div>
 <script src="{{ url_for('static', filename='js/mobile-navbar.js')}}"></script>
+<script src="{{ url_for('static', filename='js/buttons.js')}}"></script>
 </body>
 </html>

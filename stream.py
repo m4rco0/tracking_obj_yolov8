@@ -1,49 +1,124 @@
-from threading import Thread
-import threading
 import cv2 as cv
 from ultralytics import YOLO
-from ultralytics.utils import logging, threaded
-class camera:
-    def __init__(self, fps=20, capture_cam=0) -> None:
-        self.fps = fps
-        self.capture_cam = capture_cam
-        self.cap =  cv.VideoCapture(self.capture_cam)
-        self.frames = []
-        self.running = False
-        self.model = YOLO("yolov8n.pt")
-        self.lock = threading.Lock()
+import os
+from datetime import datetime
 
-    def run(self):
-        logging.debug("Criando o thread")
-        self.running = True
-        Thread(target=self._capture_loop).start()
-        Thread(target=self._process_loop).start()
-    def _capture_loop(self):
-        while self.running:
-            ret, frame = self.cap.read()
+class Camera:
+    def __init__(self, capture_cam="/dev/video0") -> None:
+        self.captura = capture_cam
+        self.camRunning = True
+        self.streaming = None
+        self.modelo = YOLO('yolov8n.pt')
+        self.frame = None
+        self.isRecording = False 
+        self.videoWriter = None
+
+    def record_frame(self, save_dir="uploads"):
+        if not self.camRunning:
+            print("Abra a camera")
+            return False
+        
+        if self.isRecording:
+            print("Ja esta gravando")
+            return False
+        
+
+        
+        
+
+        # definir codex de AVI
+        fourcc =cv.VideoWriter_fourcc(*'XVID')
+        timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S")
+        filename = os.path.join(save_dir, f"video_{timestamp}.mp4")
+
+
+        os.makedirs(save_dir, exist_ok=True)
+
+        frame_width = int(self.streaming.get(cv.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(self.streaming.get(cv.CAP_PROP_FRAME_HEIGHT))
+        fps = 20.0
+
+        self.videoWriter = cv.VideoWriter(filename, fourcc, fps, (frame_width, frame_height))
+
+        if not self.videoWriter.isOpened():
+            print(f"ERRO: Não foi possível abrir o VideoWriter para {filename}")
+            print(f"Verifique codec, resolução ou permissões")
+            return False
+        
+        self.isRecording = True
+
+        print(f"Tentando salvar em: {os.path.abspath(filename)}")
+        return filename
+
+    def parar_gravacao(self):
+        if not self.isRecording:
+            print("Não está gravando")
+            return False
+        if self.videoWriter is None:
+            print("Não tem o video Writer")
+            return False
+        
+        self.videoWriter.release()
+        self.isRecording = False
+        self.videoWriter = None
+        return True
+        
+
+    def capture_frame(self, save_dir="uploads"):
+        if self.frame is None:
+            return
+        
+        try:
+            # Cria o diretório se não existir
+            os.makedirs(save_dir, exist_ok=True)
+                
+            # Gera um nome de arquivo com timestamp
+            timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S")
+            filename = os.path.join(save_dir, f"capture_{timestamp}.jpg")
+            
+            abs_path = os.path.abspath(filename)
+            print(f"Tentando salvar em {abs_path}")
+            # Salva a imagem
+            cv.imwrite(abs_path, self.frame)
+            
+            return filename
+        except Exception as e:
+            print(f"Erro ao captirar o frame: {e}")
+            return None
+
+
+    def generate_frame(self):
+        self.streaming = cv.VideoCapture(self.captura)
+        while self.camRunning:
+            sucess, frame = self.streaming.read()
+            if not sucess:
+                print("Error em carregar o frame")
+                break
+
+            # tracking do YOLO
+            resultados = self.modelo.track(frame, persist=True)
+            frame_tracking = resultados[0].plot()
+            self.frame = frame_tracking
+
+            # se estiver gravando, salva os frames no videoWriter
+            if self.isRecording and self.videoWriter is not None:
+                self.videoWriter.write(frame_tracking)
+                
+
+            ret, buffer = cv.imencode('.jpg', frame_tracking)
             if not ret:
-                break
-            with self.lock:
-                if len(self.frames) < 10:
-                    self.frames.append(frame)
-        self.cap.release()
+                print("Erro no buffer")
+                continue
 
-    def _process_loop(self):
-        while self.running:
-            if len(self.frames) > 0:
-                with self.lock:
-                    frame = self.frames.pop(0)
-                resultados = self.model.track(frame)
-                obj_box = resultados[0].plot()
-                cv.imshow("ESP32 ", obj_box)
+            yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n') 
 
-            key = cv.waitKey(1)
-            if key == ord('q') or key == 27:
-                self.running = False
-                break
+        self.streaming.release()
         cv.destroyAllWindows()
-    def stopCam(self):
-        self.running = False
-
-test = camera()
-test.run()
+    
+    def stop(self):
+        self.camRunning = False
+        self.streaming.release()
+        if self.streaming is not None:
+            self.streaming.release()
+        cv.destroyAllWindows()

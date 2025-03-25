@@ -108,12 +108,13 @@ main {
   display: flex;
   width: 80%;
   background-color: white;
-  height: 90%;
+  height: 80%;
   min-height: 60%;
-
+  border: 2px solid black;
+  overflow: hidden;
 }
 
-.cam img {
+#video-stream {
   width: 100%;
-  height: 100%;
+  height: auto;
 }
