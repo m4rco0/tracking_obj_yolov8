@@ -2,7 +2,7 @@ from flask import Flask, Response, render_template, jsonify
 from stream import Camera
 import os
 
-numero_da_camera = 0
+numero_da_camera = "/dev/video0"
 app = Flask(__name__)
 cam = None 
 

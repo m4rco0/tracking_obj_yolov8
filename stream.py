@@ -6,8 +6,14 @@ from datetime import datetime
 class Camera:
     def __init__(self, capture_cam="/dev/video0") -> None:
         self.captura = capture_cam
+        self.camRunning = False  # Inicia como False
+        self.streaming = cv.VideoCapture(self.captura)
+        
+        if not self.streaming.isOpened():
+            print(f"Erro: Não foi possível abrir a câmera {self.captura}")
+            return
+            
         self.camRunning = True
-        self.streaming = None
         self.modelo = YOLO('yolov8n.pt')
         self.frame = None
         self.isRecording = False 
@@ -15,110 +21,111 @@ class Camera:
 
     def record_frame(self, save_dir="uploads"):
         if not self.camRunning:
-            print("Abra a camera")
+            print("Erro: Câmera não está aberta")
             return False
         
         if self.isRecording:
-            print("Ja esta gravando")
+            print("Aviso: Já está gravando")
             return False
-        
 
-        
-        
-
-        # definir codex de AVI
-        fourcc =cv.VideoWriter_fourcc(*'XVID')
-        timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S")
-        filename = os.path.join(save_dir, f"video_{timestamp}.mp4")
-
-
+        # Garante que o diretório existe
         os.makedirs(save_dir, exist_ok=True)
+
+        # Tenta diferentes codecs
+        codecs = ['mp4v', 'XVID', 'MJPG', 'DIVX']
+        timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S")
+        filename = os.path.join(save_dir, f"video_{timestamp}.avi")  # .avi tem melhor compatibilidade
 
         frame_width = int(self.streaming.get(cv.CAP_PROP_FRAME_WIDTH))
         frame_height = int(self.streaming.get(cv.CAP_PROP_FRAME_HEIGHT))
         fps = 20.0
 
-        self.videoWriter = cv.VideoWriter(filename, fourcc, fps, (frame_width, frame_height))
+        # Tenta cada codec até encontrar um que funcione
+        for codec in codecs:
+            fourcc = cv.VideoWriter_fourcc(*codec)
+            self.videoWriter = cv.VideoWriter(filename, fourcc, fps, (frame_width, frame_height))
+            
+            if self.videoWriter.isOpened():
+                print(f"Codec {codec} funcionando. Gravando em: {os.path.abspath(filename)}")
+                self.isRecording = True
+                return filename
+            else:
+                print(f"Codec {codec} falhou, tentando próximo...")
+                continue
 
-        if not self.videoWriter.isOpened():
-            print(f"ERRO: Não foi possível abrir o VideoWriter para {filename}")
-            print(f"Verifique codec, resolução ou permissões")
-            return False
-        
-        self.isRecording = True
-
-        print(f"Tentando salvar em: {os.path.abspath(filename)}")
-        return filename
+        print("Erro: Nenhum codec funcionou")
+        return False
 
     def parar_gravacao(self):
         if not self.isRecording:
-            print("Não está gravando")
+            print("Aviso: Não está gravando")
             return False
-        if self.videoWriter is None:
-            print("Não tem o video Writer")
-            return False
-        
-        self.videoWriter.release()
+            
+        if self.videoWriter:
+            self.videoWriter.release()
+            self.videoWriter = None
+            
         self.isRecording = False
-        self.videoWriter = None
+        print("Gravação finalizada com sucesso")
         return True
-        
 
     def capture_frame(self, save_dir="uploads"):
         if self.frame is None:
-            return
+            print("Erro: Nenhum frame disponível")
+            return None
         
         try:
-            # Cria o diretório se não existir
             os.makedirs(save_dir, exist_ok=True)
-                
-            # Gera um nome de arquivo com timestamp
             timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S")
             filename = os.path.join(save_dir, f"capture_{timestamp}.jpg")
             
-            abs_path = os.path.abspath(filename)
-            print(f"Tentando salvar em {abs_path}")
-            # Salva a imagem
-            cv.imwrite(abs_path, self.frame)
-            
-            return filename
+            if cv.imwrite(filename, self.frame):
+                print(f"Foto salva em: {os.path.abspath(filename)}")
+                return filename
+            else:
+                print("Erro: Falha ao salvar foto")
+                return None
         except Exception as e:
-            print(f"Erro ao captirar o frame: {e}")
+            print(f"Erro ao capturar frame: {str(e)}")
             return None
 
-
     def generate_frame(self):
-        self.streaming = cv.VideoCapture(self.captura)
+        if not self.camRunning:
+            print("Erro: Câmera não inicializada")
+            return
+
         while self.camRunning:
-            sucess, frame = self.streaming.read()
-            if not sucess:
-                print("Error em carregar o frame")
+            success, frame = self.streaming.read()
+            if not success:
+                print("Erro: Falha ao capturar frame")
+                self.camRunning = False
                 break
 
-            # tracking do YOLO
-            resultados = self.modelo.track(frame, persist=True)
-            frame_tracking = resultados[0].plot()
-            self.frame = frame_tracking
+            try:
+                resultados = self.modelo.track(frame, persist=True)
+                frame_tracking = resultados[0].plot()
+                self.frame = frame_tracking
 
-            # se estiver gravando, salva os frames no videoWriter
-            if self.isRecording and self.videoWriter is not None:
-                self.videoWriter.write(frame_tracking)
-                
+                if self.isRecording and self.videoWriter:
+                    self.videoWriter.write(frame_tracking)
 
-            ret, buffer = cv.imencode('.jpg', frame_tracking)
-            if not ret:
-                print("Erro no buffer")
+                ret, buffer = cv.imencode('.jpg', frame_tracking)
+                if ret:
+                    yield (b'--frame\r\n'
+                          b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+                else:
+                    print("Aviso: Falha ao codificar frame")
+            except Exception as e:
+                print(f"Erro no processamento: {str(e)}")
                 continue
 
-            yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n') 
-
-        self.streaming.release()
-        cv.destroyAllWindows()
-    
     def stop(self):
-        self.camRunning = False
-        self.streaming.release()
-        if self.streaming is not None:
+        if self.isRecording:
+            self.parar_gravacao()
+            
+        if self.streaming and self.streaming.isOpened():
             self.streaming.release()
+            
+        self.camRunning = False
         cv.destroyAllWindows()
+        print("Câmera liberada com sucesso")
