@@ -1,24 +1,32 @@
 from flask import Flask, Response, render_template, jsonify
 from stream import Camera
 import os
-
-numero_da_camera = "/dev/video0"
+"""
+Variaveis globais utilizadas pela aplicação
+"""
+numero_da_camera = 0
 app = Flask(__name__)
-cam = None 
+cam = Camera()
 
+"""
+configuração da rota utilizando o template do front-end
+"""
 @app.route('/')
 def index():
   print(f"Diretório atual: {os.getcwd()}")
   print(f"Caminho uploads: {os.path.abspath('uploads')}")
   return render_template('index.html')
-
+"""
+rota utilizada para pegar o streaming da camera do yolo
+"""
 @app.route('/iniciar_tracking')
 def iniciar_tracking():
   global cam
-  if cam is None: 
-    cam = Camera(numero_da_camera)
   return Response(cam.generate_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+"""
+Rota utilizada para parar a transmissão da camera
+"""
 @app.route('/parar_tracking')
 def parar_tracking():
   global cam
@@ -27,6 +35,13 @@ def parar_tracking():
     cam = None
   return render_template('index.html') 
 
+"""
+Rota utilizada para solicitar a captura da camera
+retorna:
+  - 200 para sucesso
+  - 400 para caso a camera esteja desligada
+  - 500 para caso falhe na captura
+"""
 @app.route('/capturar_foto')
 def capturar_foto():
   global cam
@@ -46,6 +61,11 @@ def capturar_foto():
   except Exception as e:
     return jsonify({"status": "error", "message": str(e)}), 500
 
+"""
+Rota que pede para Camera gravar e caso seja feito com sucesso, retorna um json:
+  - 200 sucesso
+  - 500 falha na gravação
+"""
 @app.route('/iniciar_gravacao')
 def iniciar_gravacao():
   global cam
@@ -63,6 +83,9 @@ def iniciar_gravacao():
   else:
     return jsonify({"status": "error", "message": "Falha ao iniciar gravação"}), 500
 
+"""
+Rota usada para a gravação
+"""
 @app.route('/parar_gravacao')
 def parar_gravacao():
   global cam

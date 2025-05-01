@@ -2,13 +2,24 @@ import cv2 as cv
 from ultralytics import YOLO
 import os
 from datetime import datetime
-
+""" Classe da camera, que possui o yolov8n
+    - streaming -> camera utilizada para o tracking. 
+    - modelo -> Modelo do yolo .
+    - captura -> numeração da Camera.
+    - camRunning -> Se a camera está ligada ou não .
+    - frame -> frames de camera .
+    - isRecording -> Se a estiver gravando ou não.
+    - videoWriter -> usado para gravar o video em um arquivo.
+"""
 class Camera:
+
+    """
+    Inicializando a camera e o modelo yolo
+    """
     def __init__(self, capture_cam="/dev/video0") -> None:
         self.captura = capture_cam
         self.camRunning = False  # Inicia como False
         self.streaming = cv.VideoCapture(self.captura)
-        
         if not self.streaming.isOpened():
             print(f"Erro: Não foi possível abrir a câmera {self.captura}")
             return
@@ -19,6 +30,13 @@ class Camera:
         self.isRecording = False 
         self.videoWriter = None
 
+    """
+    Metodo record_frame tem a função de testar se a camera ja está ativa ou gravando,
+    criar o diretorio de Uploads e salvar o video no formato .avi. Retornando true se conseguiu gravar e false caso contrario.
+
+    entradas:
+    - save_dir -> nome do diretorio no formato de string
+    """
     def record_frame(self, save_dir="uploads"):
         if not self.camRunning:
             print("Erro: Câmera não está aberta")
@@ -56,6 +74,9 @@ class Camera:
         print("Erro: Nenhum codec funcionou")
         return False
 
+    """
+    Metódo da Camera para parar a gravação caso não esteja gravando, não fará nada.
+    """
     def parar_gravacao(self):
         if not self.isRecording:
             print("Aviso: Não está gravando")
@@ -69,6 +90,12 @@ class Camera:
         print("Gravação finalizada com sucesso")
         return True
 
+    """
+    Metódo capture_frame utilizado pela Camera para tirar print da camera, se não tiver o arquivo uploads irá criar e salvar as images 
+    no formato capture_day/mounth/year_H:M:S.jpg
+    
+    retorna true se conseguir, e false caso contrario
+    """
     def capture_frame(self, save_dir="uploads"):
         if self.frame is None:
             print("Erro: Nenhum frame disponível")
@@ -89,6 +116,9 @@ class Camera:
             print(f"Erro ao capturar frame: {str(e)}")
             return None
 
+    """
+    O Metódo generate_frame vai começar mandar o stream da camera para que o nosso front-end consiga pegar, por meio de um buffer de imagem
+    """
     def generate_frame(self):
         if not self.camRunning:
             print("Erro: Câmera não inicializada")
@@ -119,6 +149,9 @@ class Camera:
                 print(f"Erro no processamento: {str(e)}")
                 continue
 
+    """
+    Metódo stop, finaliza todas as operações da camera
+    """
     def stop(self):
         if self.isRecording:
             self.parar_gravacao()
